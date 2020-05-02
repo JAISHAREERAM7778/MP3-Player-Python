@@ -1,0 +1,280 @@
+THE View.py FILE
+The third module that we are going to code is the View module which will act allow the user to interact witht the application . It will contain buttons for adding song to the playlist , playing a song, removing a song from the playlist as well as buttons for setting/unsetting favourites . Also recall that these buttons will call respective methods of Player class to implement their functionality so we will require a Player object to be created in the View 
+
+STEPS TO BE DONE BEFORE View.py
+Before writing logic for View.py , we must create our own Exception class which will be used whenever the user takes an action like playing a song or removing a song etc without selecting the song.
+To do this we require to create a module called MyException containing our own Exception class called NoSongSelectedException.
+Following is it's code:
+class NoSongSelectedError(Exception):
+    pass
+
+
+STEPS TO BE DONE IN View.py
+The View module primarily has 3 tasks :
+I.  Set Up the UI
+II. Managing the user actions
+III. Interacting with the Player class 
+Moreover , we already have the UI designed , so we just have to do step II and step III
+So the View module will do the following:
+1. Rename the class Toplevel1 to View
+2. This class will have the following responsibilities:
+	A. Instantiate the Player object .
+	B. Disable the addfavourite, removefavourite and loadfavourite Buttons if the database connection is not opened 	C. Set up the event handlers for all the Buttons and Listbox
+	D. Provide method for handling closing of window so that we can get user confirmation before closing 
+	E. Provide instance methods for handling song progress using MultiThreading
+	
+         
+Based on the above discussion following will be the methods in our View class:
+
+1. setup_player(): For instantiating the Player object , enabling or disabling the addfavourite, removefavourite and loadfavourite Buttons and setting up event handlers for all other Button
+
+2. change_volume():For setting the volume level as selected by the user
+
+3. add_song(): For adding song in the playlist.
+
+4. show_song_details(): For displaying song title and song length in the UI.
+
+5. play_song():For playing the currently selected  song
+ 
+
+6. list_double_click():For playing the currently double clicked song
+
+7. stop_song():For stopping the song currently being played.
+
+8. pause_song():For pausing the song currently being played.
+
+9. close_window(): For closing the app
+
+10. remove_song: For removing the song currently selected
+
+11. load_previous_song():For playing the previous of the currently played song.
+
+CODING THE View.py FILE
+Following are the modules to be used in View.py file :
+import random
+import sys
+import threading
+import time
+from tkinter import filedialog, messagebox
+from cx_Oracle import DatabaseError
+from pygame import mixer
+import tkinter as tk
+import tkinter.ttk as ttk
+import Player
+from MyExceptions import *
+
+1. The __init__() Method: 
+This method will do the following:
+A. Call the setup_player() method
+
+class Player:
+
+    def __init__(self):
+        # do not change any pre written code. Simply add the below mentioned statement
+		self.setup_player()
+
+
+2. The setup_player() Method: 
+This method will do the following:
+1. It will accept no argument and will be called by the __init__() method as soon as the application loads
+2. It will instantiate the Player object
+3. It will check whether database connection is opened or not by calling the get_db_status() method of the Player object
+4. If the get_db_status() method returns True, then it will show the message "Connected successfully to the database"
+5. But if the get_db_status() method returns False, then it will throw an Exception and display the message 	          	    "Sorry! you cannot save or load favourites!!!" . It will also disable the addfavourite, removefavourite and loadfavourite Buttons
+6. Finally it will setup the UI elements event handlers as mentioned below:
+	a. UI Element: self.vol_scale:
+	
+Attribute	Value
+from_	0
+to	100
+command	self.change_volume
+
+	b. It will also call the method set() of self.vol_scale passing it the number 50 as argument to set the volume level to 	0.5 initially.
+      c. UI Element: self.addToPlayListButton:
+	
+Attribute	Value
+command	self.add_song
+
+	d. UI Element: self.deleteSongsFromPlaylistButton:
+	
+Attribute	Value
+command	self.remove_song
+
+	e. UI Element: self.playButton:
+	
+Attribute	Value
+command	self.play_song
+
+	f. UI Element: self.stopButton:
+	
+Attribute	Value
+command	self.stop_song
+
+	g. UI Element: self.pauseButton:
+	
+Attribute	Value
+command	self.pause_song
+
+
+	h. UI Element: self.playList:
+	
+Attribute	Value
+font	"Vivaldi 12"
+
+	i. It will also call the method bind() of self.playList for setting up the event handler for double click event
+	j. It will also call the method title() and iconphoto() of self.top for setting the title to "MOUZIKKA-Dance to the rhythm of your heart!!" as well as setting up the icon image
+	h. It will also call the method protocol() of self.top() passing it 2 arguments. This method allows us to add our own logic before the terminating or destroying the root window. It's first argument is a string called "WM_DELETE_WINDOW" and the second argument is the name of the method to be called when the window is closed by the user.
+	i. Finally it will declare 2 instance members called self.isPlaying and self.isPaused and set them to False. These members will be used to implement play and pause functionality.
+
+Based on the above discussion following is the code for the setup_player() method:
+def setup_player(self):
+    try:
+         self.my_player = Player.Player()
+         if self.my_player.get_db_status():
+             messagebox.showinfo("Success!", "Connected successfully to the DB!!!")
+         else:
+             raise Exception("Sorry! you cannot save or load favourites!!!")
+
+    except Exception as ex:
+        print("DB Error:",ex)
+        messagebox.showerror("DB Error!", ex)
+        self.addFavourite.configure(state="disabled")
+        self.loadFavourite.configure(state="disabled")
+        self.removeFavourite.configure(state="disabled")
+
+
+
+    self.vol_scale.configure(from_=0, to=100, command=self.change_volume)
+    self.vol_scale.set(50)
+    self.addSongsToPlayListButton.configure(command=self.add_song)
+    self.deleteSongsFromPlaylistButton.configure(command=self.remove_song)
+    self.playButton.configure(command=self.play_song)
+    self.stopButton.configure(command=self.stop_song)
+    self.pauseButton.configure(command=self.pause_song)
+    self.playList.configure(font="Vivaldi 12")
+    self.playList.bind("<Double-1>", self.list_double_click)
+    img = tk.PhotoImage(file="./icons/icon_music1.png")
+    self.top.iconphoto(self.top, img)
+    self.top.title("MOUZIKKA-Dance to the rhythm of your heart!!")
+	self.top.protocol("WM_DELETE_WINDOW", self.closewindow)
+    self.isPaused = False
+    self.isPlaying = False
+
+
+3. The change_volume() Method: 
+This method will do the following:
+A. It will be called in 2 situations :
+	a. At the start of application to set the initial volume level
+	b. Whenever the user drags the Scale object on the UI
+It will accept an argument called volume_level which will be the Scale value passed by Python as soon as the Scale is dragged by the user or we call the method set() of the Scale object.
+B. This value will be of type string and in the range of 0 to 100. So it has to be converted to float as well as between 0.0 to 1.0 .
+C. Finally to set the volume level we have to call the method set_volume() of the Player object passing it the volume calculated above .
+Based on the above discussion following is the code for the change_volume() method:
+
+def change_volume(self,val):
+    pass
+
+4. The add_song() Method: 
+This method will do the following:
+A. This method will be called whenever the user clicks on the      Button.  It will call the method add_song() of the Player object and receive the name of the song in a variable called song_name.
+B. If the method add_song() of the Player object returned an empty string , this method would return.
+C. Otherwise it will add the song name to the self.playList Listbox object 
+D. Finally it will change the color of self.playList to some random color
+ Based on the above discussion following is the code for the add_song() method:
+def add_song(self):
+
+        pass
+
+5. The show_song_details() Method: 
+This method will do the following:
+A. This method will be called for showing the song details before the song starts playing. It will accept no argument 
+B. It will call the method get_song_length() of the Player object and store the return value in an instance member called self.song_length. We have created song_length as an instance member because we will require it when we will implement the showing song progress functionality using multithreading.
+C. It will then convert self.song_length which is in seconds to minutes and seconds and display it in the label self.songTotalDuration . Along with this it will also set the self.songTimePassed to the text "0:0"
+D. The next task is to show the song name in the label self.songName. But since the label is of short length , so we will have to truncate the song name to 14 characters if it is of more than 14 letters and add a suffix of . . .
+E. Finally we will show the song name in the label self.songName.
+Based on the above discussion following is the code for the show_song_details() method:
+def show_song_details(self):
+    pass
+
+
+
+6. The play_song() Method: 
+This method will do the following:
+A. This method will be called in 2 situations:
+	a. When the user selects a song and clicks the  Button
+	b. Whenever the users double clicks on a song in the playlist.
+	It will accept no argument 
+B. It will retrieve the item selected by the user in the playlist . This will be done by calling the method curselection() of the self.playList 
+C. If the user has not selected any song , it will raise the NoSongSelectedError exception displaying the message "Please select a song to play".
+D. Otherwise it will get the song name from the tuple returned by the method curselection() and store it in an instance member called self.song_name
+E. It will then call the instance method self.show_song_details() for displaying song info 
+F. Finally it will call the play_song() method of Player object and set the instance member isPlaying to True.
+Based on the above discussion following is the code for the play_song() method:
+def play_song(self):
+    pass
+
+
+
+
+
+7. The list_double_click() Method: 
+This method will do the following:
+A. This method will be called as soon as the user double clicks on a song in the playlist . It will accept 1 argument called e of type Event.
+B. Since on double click of song in the playlist also we want to play the song , so we will simply call the method play_song() from here
+
+Based on the above discussion following is the code for the list_double_click() method:
+def list_double_click(self,e):
+   pass
+
+
+8. The stop_song() Method: 
+This method will do the following:
+A. This method will be called whenever the user clicks on the  Button. It will stop the song currently being played by calling the method stop_song() of the Player object.
+B. It will also set the instance member isPlaying to False.
+
+Based on the above discussion following is the code for the stop_song() method:
+def stop_song(self):
+    pass
+
+9. The pause_song() Method: 
+This method will do the following:
+A. This method will be called whenever the user clicks on the  Button and it will pause/unpause the music being currently played.
+B. To do this it will call the method pause() and unpause() of the Player object
+Based on the above discussion following is the code for the pause_song() method:
+def pause_song(self):
+    pass
+
+10. The remove_song() Method: 
+This method will do the following:
+A. This method will be called when the user clicks on the  Button and will remove the song from the playlist which has been selected by the user.It will accept no argument.
+B. It will retrieve the item selected by the user in the playlist . This will be done by calling the method curselection() of the self.playList 
+C. If the user has not selected any song , it will raise the NoSongSelectedError exception displaying the message "Please select a song to remove".
+D. Otherwise it will get the song name from the tuple returned by the method curselection() and store it in a local variable  called song_name. Then it will remove that song from the playlist by calling the method delete() of the Listbox object
+E. Finally it will call the method remove_song() of the Player object passing it the song name as argument to remove the entry of this song from the dictionary
+Based on the above discussion following is the code for the remove_song() method:
+def remove_song(self):
+    pass
+
+11. The close_window() Method: 
+This method will do the following:
+A. As mentioned above , this method will be called by Python when the users clicks on the      Button of the root window.    
+B. It will then get a confirmation from the user that whether he wants to quit. This will be done by calling the function askyesno() of the messagebox module.
+C. If the user response is True then it will unload the player by calling the method close_player() of the self.my_player object , display a Thank you message using  the function showinfo() of the messagebox module and finally it will destroy the window by calling the method destroy() of self.top.
+
+Based on the above discussion following is the code for the close_window() method:
+def closewindow(self):
+    pass
+
+
+12. The load_previous_song() Method: 
+This method will do the following:
+A. This method will be called when the user clicks on the  Button and will play the song from the playlist which has been selected by the user.It will accept no argument.
+B. It will get the index of the song curre
+C. If the user has not selected any song , it will raise the NoSongSelectedError exception displaying the message "Please select a song to remove".
+D. Otherwise it will get the song name from the tuple returned by the method curselection() and store it in a local variable  called song_name. Then it will remove that song from the playlist by calling the method delete() of the Listbox object
+E. Finally it will call the method remove_song() of the Player object passing it the song name as argument to remove the entry of this song from the dictionary
+Based on the above discussion following is the code for the load_previous_song() method:
+def load_previous_song(self):
+
+    pass
+
